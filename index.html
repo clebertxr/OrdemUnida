@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Pelotão Marchando</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: #f0f0f0;
+    }
+    .campo {
+      position: relative;
+      width: 800px;
+      height: 600px;
+      border: 2px solid #333;
+      background: #d0e0d0;
+      overflow: hidden;
+    }
+    .soldado {
+      position: absolute;
+      width: 20px;
+      height: 40px;
+      background: #555;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      transform-origin: center center;
+      transition: transform 0.1s linear;
+    }
+    .cabeca {
+      width: 14px;
+      height: 14px;
+      background: #ffcc99;
+      border-radius: 50%;
+      margin-top: 2px;
+      position: relative;
+    }
+    .olho {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      background: #000;
+      border-radius: 50%;
+      top: 4px;
+    }
+    .olho.esq { left: 3px; }
+    .olho.dir { right: 3px; }
+
+    .braco {
+      position: absolute;
+      width: 6px;
+      height: 16px;
+      background: #444;
+      top: 16px;
+      transform-origin: top center;
+    }
+    .braco.esq { left: -6px; }
+    .braco.dir { right: -6px; }
+  </style>
+</head>
+<body>
+  <div class="campo" id="campo"></div>
+  <div style="margin-top:10px;">
+    <button onclick="iniciar()">Iniciar</button>
+    <button onclick="parar()">Parar</button>
+    <button onclick="virar(-90)">Virar ←</button>
+    <button onclick="virar(90)">Virar →</button>
+    <button onclick="virar(180)">Meia-volta</button>
+  </div>
+  <script>
+    const campo = document.getElementById('campo');
+    let soldados = [];
+    let numSoldados = 12;
+    let cols = 6;
+    let andando = false;
+    let direcaoPelotao = 0;
+    let destinoDirecao = 0;
+    let posX = 400, posY = 300;
+    let passo = 0;
+    let velocidade = 2;
+
+    function criarPelotao() {
+      campo.innerHTML = '';
+      soldados = [];
+      for (let i = 0; i < numSoldados; i++) {
+        const s = document.createElement('div');
+        s.className = 'soldado';
+        s.dataset.angulo = direcaoPelotao;
+
+        const cabeca = document.createElement('div');
+        cabeca.className = 'cabeca';
+        const olhoEsq = document.createElement('div');
+        olhoEsq.className = 'olho esq';
+        const olhoDir = document.createElement('div');
+        olhoDir.className = 'olho dir';
+        cabeca.appendChild(olhoEsq);
+        cabeca.appendChild(olhoDir);
+
+        const bracoEsq = document.createElement('div');
+        bracoEsq.className = 'braco esq';
+        const bracoDir = document.createElement('div');
+        bracoDir.className = 'braco dir';
+
+        s.appendChild(cabeca);
+        s.appendChild(bracoEsq);
+        s.appendChild(bracoDir);
+
+        campo.appendChild(s);
+        soldados.push(s);
+      }
+      posicionar();
+    }
+
+    function getFormationExtents() {
+      const lateral = 30;
+      const vertical = 50;
+      const rows = Math.ceil(numSoldados / cols);
+      const halfWidth = ((cols - 1) / 2) * lateral + 20;
+      const halfHeight = (rows - 1) * vertical + 20;
+      return {halfWidth, halfHeight};
+    }
+
+    function clampPosition() {
+      const {halfWidth, halfHeight} = getFormationExtents();
+      const w = campo.clientWidth;
+      const h = campo.clientHeight;
+      posX = Math.max(halfWidth, Math.min(w - halfWidth, posX));
+      posY = Math.max(halfHeight, Math.min(h - halfHeight, posY));
+    }
+
+    function posicionar() {
+      const rows = Math.ceil(numSoldados / cols);
+      for (let i = 0; i < numSoldados; i++) {
+        let row = Math.floor(i / cols);
+        let col = i % cols;
+        let dx = (col - (cols - 1) / 2) * 30;
+        let dy = row * 50;
+        let rad = direcaoPelotao * Math.PI / 180;
+        let x = posX + dx * Math.cos(rad) - dy * Math.sin(rad);
+        let y = posY + dx * Math.sin(rad) + dy * Math.cos(rad);
+
+        soldados[i].style.transform = `translate(${x}px,${y}px) rotate(${direcaoPelotao}deg)`;
+      }
+    }
+
+    function animar() {
+      if (andando) {
+        posX += Math.cos(direcaoPelotao * Math.PI / 180) * velocidade;
+        posY += Math.sin(direcaoPelotao * Math.PI / 180) * velocidade;
+        passo += 0.1 * velocidade;
+        let bracoAng = Math.sin(passo) * 25;
+        soldados.forEach(s => {
+          const bracos = s.querySelectorAll('.braco');
+          bracos[0].style.transform = `rotate(${bracoAng}deg)`;
+          bracos[1].style.transform = `rotate(${-bracoAng}deg)`;
+        });
+      }
+
+      clampPosition();
+
+      let diff = ((destinoDirecao - direcaoPelotao + 540) % 360) - 180;
+      direcaoPelotao += diff * 0.05;
+
+      posicionar();
+      requestAnimationFrame(animar);
+    }
+
+    function iniciar() { andando = true; }
+    function parar() { andando = false; }
+    function virar(graus) { destinoDirecao = (destinoDirecao + graus + 360) % 360; }
+
+    criarPelotao();
+    animar();
+  </script>
+</body>
+</html>
